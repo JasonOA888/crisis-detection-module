@@ -1,52 +1,174 @@
-# Crisis Detection Module
+# Crisis Detection API
 
-A privacy-first, bilingual (EN/ZH) crisis detection module for text analysis.
+[![CI](https://github.com/JasonOA888/crisis-detection-module/actions/workflows/ci.yml/badge.svg)](https://github.com/JasonOA888/crisis-detection-module/actions/workflows/ci.yml)
+
+A privacy-first, bilingual (EN/ZH) crisis detection REST API service.
 
 ## Overview
 
-This module analyzes text input and flags potential crisis language:
+This API analyzes text for crisis language indicators:
 - Self-harm indicators
-- Suicide ideation
+- Suicide ideation  
 - Severe distress signals
 
-**Important:** This module does NOT diagnose. It does NOT alert anyone. It only flags content for review.
+**Important:** This API does NOT diagnose. It does NOT alert anyone. It only flags content for review.
 
 ## Features
 
-- 🔒 Privacy-first: No data leaves your system
-- 🌐 Bilingual: English and Chinese support
-- 📊 Confidence scores: Returns 0.0-1.0, not just boolean
-- ⚡ Lightweight: Pure Python, minimal dependencies
-
-## Installation
-
-```bash
-pip install crisis-detection
-```
+- 🔒 Privacy-first: All processing happens locally, no external API calls
+- 🌐 Bilingual: Automatic language detection for English and Chinese
+- 📊 Confidence scores: Returns 0.0-1.0 confidence levels
+- 🚀 Fast: Lightweight FastAPI service with async support
+- 🐳 Docker-ready: One-command deployment
+- ✅ CI/CD: Automated testing and Docker builds
 
 ## Quick Start
 
-```python
-from crisis_detection import detect_crisis
+### Option 1: Docker (Recommended)
 
-result = detect_crisis("I can't go on anymore")
-print(result)
-# {"is_crisis": True, "confidence": 0.85, "matched_keywords": ["can't go on"], "language": "en"}
+```bash
+# Build the image
+docker build -t crisis-detection-api .
+
+# Run the container
+docker run -p 8000:8000 crisis-detection-api
+
+# Access the API
+open http://localhost:8000/docs
 ```
 
-## API
+### Option 2: Python
 
-### `detect_crisis(text: str) -> dict`
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-**Parameters:**
-- `text` (str): Input text to analyze
+# Run the server
+uvicorn api:app --reload
 
-**Returns:**
-- `is_crisis` (bool): Whether crisis language was detected
-- `confidence` (float): Confidence score 0.0-1.0
-- `matched_keywords` (list): Keywords that triggered detection
-- `language` (str): Detected language ("en" or "zh")
+# Or run directly
+python api.py
+```
+
+## API Endpoints
+
+### `POST /analyze`
+
+Analyze a single text for crisis indicators.
+
+**Request:**
+```json
+{
+  "text": "I want to die",
+  "language": null,
+  "negation_window": 5
+}
+```
+
+**Response:**
+```json
+{
+  "is_crisis": true,
+  "confidence": 0.85,
+  "matched_keywords": ["want to die"],
+  "negated_keywords": [],
+  "language": "en",
+  "severity": "high",
+  "context_notes": []
+}
+```
+
+### `POST /analyze/batch`
+
+Analyze multiple texts in one request (max 100).
+
+**Request:**
+```json
+{
+  "texts": [
+    "I'm having a good day",
+    "I want to die",
+    "今天心情不错"
+  ],
+  "language": null
+}
+```
+
+**Response:**
+```json
+{
+  "results": [...],
+  "total": 3,
+  "crisis_count": 1
+}
+```
+
+### `GET /health`
+
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "timestamp": 1710460800.0
+}
+```
+
+## Development
+
+### Run Tests
+
+```bash
+pip install pytest
+pytest test_crisis_detection.py -v
+```
+
+### Lint
+
+```bash
+pip install ruff
+ruff check crisis_detection.py api.py
+```
+
+## Examples
+
+### cURL
+
+```bash
+curl -X POST "http://localhost:8000/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I want to die"}'
+```
+
+### Python
+
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/analyze",
+    json={"text": "I want to die"}
+)
+print(response.json())
+```
+
+### JavaScript
+
+```javascript
+const response = await fetch('http://localhost:8000/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text: 'I want to die' })
+});
+const result = await response.json();
+```
 
 ## License
 
 MIT
+
+---
+
+**Human & AI Initiative** | Department: Product & Engineering
