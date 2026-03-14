@@ -193,3 +193,11 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.get("/dashboard")
+async def dashboard():
+    """Serve the interactive dashboard."""
+    dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard", "index.html")
+    if os.path.exists(dashboard_path):
+        return FileResponse(dashboard_path, media_type="text/html")
+    return {"error": "Dashboard not found"}
