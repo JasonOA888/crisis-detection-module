@@ -13,7 +13,7 @@ It only flags content that may need human review.
 """
 
 import re
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -40,7 +40,7 @@ class CrisisResult:
 # Negation words by language
 NEGATION_WORDS = {
     "en": {
-        "never", "not", "no", "don't", "dont", "didn't", "didnt", 
+        "never", "not", "no", "don't", "dont", "didn't", "didnt",
         "wouldn't", "wouldnt", "couldn't", "couldnt", "won't", "wont",
         "doesn't", "doesnt", "isn't", "isnt", "aren't", "arent",
         "haven't", "havent", "hasn't", "hasnt", "hadn't", "hadnt",
@@ -67,11 +67,11 @@ CONTEXT_EXCEPTIONS = {
         r"笑死(我了)?(啊|呀|哈哈)?$",  # 笑死我了 - laughing to death
         r"笑(得|到).{0,5}死",  # 笑得要死
         r"高兴死(我了)?",  # happy to death
-        r"开心死(我了)?",  
+        r"开心死(我了)?",
         r"乐死(我了)?",
         r"美死(我了)?",
         r"累死(我了)?",  # tired to death
-        r"饿死(我了)?",  
+        r"饿死(我了)?",
         r"急死(我了)?",
         r"气死(我了)?",  # angry to death
         r"想死(你|你们|您)",  # miss you to death
@@ -147,10 +147,10 @@ def detect_language(text: str) -> str:
     chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", text))
     english_chars = len(re.findall(r"[a-zA-Z]", text))
     total_chars = chinese_chars + english_chars
-    
+
     if total_chars == 0:
         return "en"
-    
+
     return "zh" if chinese_chars / total_chars > 0.25 else "en"
 
 
@@ -163,13 +163,13 @@ def find_negation_in_text(text: str, keyword: str, language: str, window: int = 
     """Check if there's a negation word within window before the keyword."""
     negation_words = NEGATION_WORDS.get(language, NEGATION_WORDS["en"])
     normalized = normalize_text(text)
-    
+
     keyword_pos = normalized.find(keyword.lower())
     if keyword_pos == -1:
         return False
-    
+
     text_before = normalized[:keyword_pos]
-    
+
     if language == "zh":
         chars_to_check = text_before[-window*2:]
         return any(char in negation_words for char in chars_to_check)
@@ -182,24 +182,24 @@ def check_context_exceptions(text: str, language: str) -> Tuple[bool, Optional[s
     """Check if text matches a non-crisis context pattern."""
     patterns = CONTEXT_EXCEPTIONS.get(language, [])
     normalized = normalize_text(text)
-    
+
     for pattern in patterns:
         if re.search(pattern, normalized, re.IGNORECASE):
             return True, pattern
-    
+
     return False, None
 
 
-def detect_crisis(text: str, language: Optional[str] = None, 
+def detect_crisis(text: str, language: Optional[str] = None,
                   negation_window: int = 5) -> Dict:
     """
     Analyze text for crisis language indicators with negation detection.
-    
+
     Args:
         text: Input text to analyze
         language: Override language detection ("en" or "zh")
         negation_window: Number of tokens to check for negation (default 5)
-    
+
     Returns:
         Dictionary with detection results
     """
@@ -213,11 +213,11 @@ def detect_crisis(text: str, language: Optional[str] = None,
             "severity": "none",
             "context_notes": []
         }
-    
+
     detected_lang = language or detect_language(text)
     normalized_text = normalize_text(text)
     context_notes = []
-    
+
     # Check context exceptions first
     is_exception, exception_pattern = check_context_exceptions(normalized_text, detected_lang)
     if is_exception:
@@ -231,28 +231,28 @@ def detect_crisis(text: str, language: Optional[str] = None,
             "severity": "none",
             "context_notes": context_notes
         }
-    
+
     keywords = CRISIS_KEYWORDS.get(detected_lang, CRISIS_KEYWORDS["en"])
-    
+
     matched = {"high": [], "medium": [], "low": []}
     negated = {"high": [], "medium": [], "low": []}
-    
+
     for severity, patterns in keywords.items():
         for pattern in patterns:
             if re.search(pattern, normalized_text, re.IGNORECASE):
                 match = re.search(pattern, normalized_text, re.IGNORECASE)
                 if match:
                     keyword = match.group()
-                    
+
                     if find_negation_in_text(text, keyword, detected_lang, negation_window):
                         negated[severity].append(keyword)
                         context_notes.append(f"Negated: '{keyword}'")
                     else:
                         matched[severity].append(keyword)
-    
+
     all_matched = matched["high"] + matched["medium"] + matched["low"]
     all_negated = negated["high"] + negated["medium"] + negated["low"]
-    
+
     if not all_matched:
         return {
             "is_crisis": False,
@@ -263,7 +263,7 @@ def detect_crisis(text: str, language: Optional[str] = None,
             "severity": "none",
             "context_notes": context_notes
         }
-    
+
     if matched["high"]:
         severity = "high"
         confidence = min(0.95, 0.8 + len(matched["high"]) * 0.05)
@@ -273,15 +273,15 @@ def detect_crisis(text: str, language: Optional[str] = None,
     else:
         severity = "low"
         confidence = min(0.5, 0.3 + len(matched["low"]) * 0.1)
-    
+
     if sum(1 for s in ["high", "medium", "low"] if matched[s]) > 1:
         confidence = min(1.0, confidence + 0.05)
         context_notes.append("Multiple severity indicators")
-    
+
     if all_negated:
         confidence = max(0.3, confidence - 0.1 * len(all_negated))
         context_notes.append(f"{len(all_negated)} negated keyword(s)")
-    
+
     return {
         "is_crisis": True,
         "confidence": round(confidence, 2),
@@ -301,13 +301,13 @@ def batch_detect(texts: List[str], language: Optional[str] = None) -> List[Dict]
 if __name__ == "__main__":
     import sys
     import json
-    
+
     if len(sys.argv) < 2:
         print("Crisis Detection Module v0.2")
         print("Usage: python crisis_detection.py \"text to analyze\"")
         print("       python crisis_detection.py --interactive")
         sys.exit(1)
-    
+
     if sys.argv[1] == "--interactive":
         print("Crisis Detection Module v0.2")
         print("Type 'quit' to exit\n")
